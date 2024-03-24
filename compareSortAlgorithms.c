@@ -1,248 +1,293 @@
-//Madison Manankil
-//cop 3502
-//Bonus Assignment
-//INSTRUCTIONS: You need to implement parseData, selectionSort, insertionSort, bubbleSort, mergeSort and heapSort functions. 
-//Each sorting function will count the number of extra memory allocated using the global variable extraMemoryAllocated.
-
-//Please prepare a report in pdf format containing the url of your git repository and screenshot of your output.
-
+// Madison Manankil
+// cop 3502
+// Bonus Assignment
+//  March 23, 2024
+//It takes a while so pls be patient when running :) <3
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
-int extraMemoryAllocated;
+int extraMemAllocated;
 
-void *Alloc(size_t sz);
-void DeAlloc(void *ptr);
-size_t Size(void *ptr);
-void selectionSort(int *pData, int n);
-void insertionSort(int *pData, int n);
-void bubbleSort(int *pData, int n);
-void mergeSort(int *pData, int l, int r);
-void merge(int *pData, int l, int m, int r);
-void heapSort(int arr[], int n);
-int parseData(char *inputFileName, int **ppData);
-void printArray(int pData[], int dataSz);
-
+// Allocates mem + tracks allocated size
 void *Alloc(size_t sz) {
-  extraMemoryAllocated += sz;
-  size_t *ret = malloc(sizeof(size_t) + sz);
-  *ret = sz;
+  extraMemAllocated += sz;
+  size_t *mem = malloc(sizeof(size_t) + sz);
+  *mem = sz;
   printf("Extra memory allocated, size: %ld\n", sz);
-  return &ret[1];
+  return &mem[1];
 }
 
+// Deallocates mem + updates tracking of alloc size
 void DeAlloc(void *ptr) {
-  size_t *pSz = (size_t *)ptr - 1;
-  extraMemoryAllocated -= *pSz;
-  printf("Extra memory deallocated, size: %ld\n", *pSz);
+  size_t *pSize = (size_t *)ptr - 1;
+  extraMemAllocated -= *pSize;
+  printf("Extra memory deallocated, size: %ld\n", *pSize);
   free((size_t *)ptr - 1);
 }
 
+// Returnssize of mem with Alloc
 size_t Size(void *ptr) { return ((size_t *)ptr)[-1]; }
-//INSERT HERE
-// heapSort: Sorts an array arr[] of size n. 
-void heapSort(int arr[], int n) {
-  int *indices = (int *)Alloc(n * sizeof(int));
-  for (int i = 0; i < n; i++) {
-    indices[i] = i;
-  }
 
+// insert
+//  Sorts an array using heap sort
+void heapSort(int numbers[], int len) {
+  // Build the heap in ara
+  for (int i = len / 2 - 1; i >= 0; i--) {
+    int largest = i; // Initialize largest as root
+    int heapified = 0;  // false
 
-  for (int i = 1; i < n; i++) {
-    if (arr[indices[i]] < arr[indices[(i - 1) / 2]]) {
-      int j = i;
-      while (arr[indices[j]] < arr[indices[(j - 1) / 2]]) {
-        int temp = indices[j];
-        indices[j] = indices[(j - 1) / 2];
-        indices[(j - 1) / 2] = temp;
-        j = (j - 1) / 2;
+    while (!heapified && largest * 2 + 1 <= len) {
+      int j = 2 * largest + 1; // largest
+      if (j < len - 1 && numbers[j] < numbers[j + 1])
+        j++;
+      if (numbers[largest] < numbers[j]) {
+        int swap = numbers[largest];
+        numbers[largest] = numbers[j];
+        numbers[j] = swap;
+        largest = j;
+      } else {
+        heapified = 1;
       }
     }
   }
 
-  DeAlloc(indices);
+  // One by one extract nimber
+  for (int i = len - 1; i > 0; i--) {
+    int temp = numbers[0];
+    numbers[0] = numbers[i];
+    numbers[i] = temp;
+
+    int largest = 0;
+    int heapified = 0; // false
+
+    while (!heapified && largest * 2 + 1 < i) {
+      int j = 2 * largest + 1;              // left child
+      if (j < i - 1 && numbers[j] < numbers[j + 1]) // right child can be larger
+        j++;
+      if (numbers[largest] < numbers[j]) {
+        temp = numbers[largest];
+        numbers[largest] = numbers[j];
+        numbers[j] = temp;
+        largest = j;
+      } else {
+        heapified = 1; // true
+      }
+    }
+  }
 }
-//merge
-void merge(int *pData, int l, int m, int r) {
+// insert
+
+// This will merges two subber arrays of dataset[]
+void merge(int dataset[], int left, int middle, int right) {
   int i, j, k;
-  int n1 = m - l + 1;
-  int n2 = r - m;
+  int n1 = middle - left + 1;
+  int n2 = right - middle;
 
-  int *L = (int *)Alloc(n1 * sizeof(int));
-  int *R = (int *)Alloc(n2 * sizeof(int));
+  // Tempor
+  int L[n1], R[n2];
 
+  // Copy data to temp arrays (L[] and R[])!
   for (i = 0; i < n1; i++)
-    L[i] = pData[l + i];
+    L[i] = dataset[left + i];
   for (j = 0; j < n2; j++)
-    R[j] = pData[m + 1 + j];
+    R[j] = dataset[middle + 1 + j];
 
+  // Merge the temp arrays back into data
   i = 0;
   j = 0;
-  k = l;
+  k = left;
   while (i < n1 && j < n2) {
     if (L[i] <= R[j]) {
-      pData[k] = L[i++];
+      dataset[k] = L[i];
+      i++;
     } else {
-      pData[k] = R[j++];
+      dataset[k] = R[j];
+      j++;
     }
     k++;
   }
 
+  // this will copy the remaining elements of L[]
+  // ig uess if there are any
   while (i < n1) {
-    pData[k++] = L[i++];
+    dataset[k] = L[i];
+    i++;
+    k++;
   }
 
+  // this willl copy the remaining elements of R[]
+  // if anyif there are any
   while (j < n2) {
-    pData[k++] = R[j++];
+    dataset[k] = R[j];
+    j++;
+    k++;
   }
+}
 
-  DeAlloc(L);
-  DeAlloc(R);
-}
-//insert
-// mergeSort will divide the array into halfs THAN sorts each half and
-// puts them back together
-void mergeSort(int *pData, int l, int r) {
-  if (l < r) {
-    int m = l + (r - l) / 2;
-    mergeSort(pData, l, m);
-    mergeSort(pData, m + 1, r);
-    merge(pData, l, m, r);
+// IMPORTANT NEEDED FOR merge sort
+void mergeSort(int dataset[], int left, int right) {
+  if (left < right) {
+    // Find the middle of everything and then  t divide the array into two
+    int middle = left + (right - left) / 2;
+
+    // Sort first and second halves
+    mergeSort(dataset, left, middle);
+    mergeSort(dataset, middle + 1, right);
+    merge(dataset, left, middle, right);
   }
 }
-//insert
-// insertionSort this will build the sorted array one at a time 
-//This compares each new thing with the previously sorted thing and inserting it into the
-// correct part.
-void insertionSort(int *pData, int n) {
+
+// Sorts an array using insertion sort algorithm
+void insertionSort(int dataset[], int len) {
   int i, key, j;
-  for (i = 1; i < n; i++) {
-    key = pData[i];
+  for (i = 1; i < len; i++) {
+    key = dataset[i];
     j = i - 1;
 
-    while (j >= 0 && pData[j] > key) {
-      pData[j + 1] = pData[j];
+    // Move elements of dataset
+    // when they are greater than key, to one position ahead of their current
+    // position
+    while (j >= 0 && dataset[j] > key) {
+      dataset[j + 1] = dataset[j];
       j = j - 1;
     }
-    pData[j + 1] = key;
+    dataset[j + 1] = key;
   }
 }
 
-
-//insert
-// bubbleSort this will repeate the steps through the list and comparessss each pair of
-// items and switchy them if wrong order. Then pass through 
-// list is repeated until the list is sort.
-void bubbleSort(int *pData, int n) {
+// insert Sorts an array using bubble sort algorithm
+void bubbleSort(int dataset[], int len) {
   int i, j;
-  for (i = 0; i < n - 1; i++)
-    for (j = 0; j < n - i - 1; j++)
-      if (pData[j] > pData[j + 1]) {
-        int temp = pData[j];
-        pData[j] = pData[j + 1];
-        pData[j + 1] = temp;
+  for (i = 0; i < len - 1; i++)
+    // Last i elements are already in place
+    for (j = 0; j < len - i - 1; j++)
+      if (dataset[j] > dataset[j + 1]) {
+        // Swap if the element found is bigger
+        // than the next element
+        int swap = dataset[j];
+        dataset[j] = dataset[j + 1];
+        dataset[j + 1] = swap;
       }
 }
 
-
-
-//insert
-
-// selectionSort
-//will sep the input list into two parts 
-//1, the sublist of items already sorted
-// 2. the sublist of items remaining to be sorted that occupy the rest of the list. 
-void selectionSort(int *pData, int n) {
+// Sorts an array using selection sort algorithm
+void selectionSort(int dataset[], int len) {
   int i, j, min_idx;
-  for (i = 0; i < n - 1; i++) {
+
+  // One by one move unsorted subar
+  for (i = 0; i < len - 1; i++) {
+    // looks for the minimum element in unsorted array
     min_idx = i;
-    for (j = i + 1; j < n; j++)
-      if (pData[j] < pData[min_idx])
+    for (j = i + 1; j < len; j++)
+      if (dataset[j] < dataset[min_idx])
         min_idx = j;
-    int temp = pData[min_idx];
-    pData[min_idx] = pData[i];
-    pData[i] = temp;
+
+    // Swap the minimum element with nymebr 1 element
+    int swap = dataset[min_idx];
+    dataset[min_idx] = dataset[i];
+    dataset[i] = swap;
   }
 }
+// end
+int parseData(char *inputFileName, int **ppDataset) {
+  FILE *fileStream = fopen(inputFileName, "r");
+  int size = 0;
+  *ppDataset = NULL;
 
-
-//INSERT
-
-// parseData
-//THis will  read ints from a file and stores them in an array. 
-//Then the size of array is spotted first and memory  THEN is allocated accordingly.
-int parseData(char *inputFileName, int **ppData) {
-  FILE *inFile = fopen(inputFileName, "r");
-  int dataSz = 0;
-  *ppData = NULL;
-
-  if (inFile) {
-    fscanf(inFile, "%d\n", &dataSz);
-    *ppData = (int *)Alloc(sizeof(int) * dataSz);
-    for (int i = 0; i < dataSz; i++) {
-      fscanf(inFile, "%d", (*ppData) + i);
+  if (fileStream) {
+    fscanf(fileStream, "%d\n", &size);
+    *ppDataset = (int *)malloc(sizeof(int) * size);
+    for (int i = 0; i < size; i++) {
+      fscanf(fileStream, "%d", &(*ppDataset)[i]);
     }
-    fclose(inFile);
+    fclose(fileStream);
   }
 
-  return dataSz;
+  return size;
 }
 
-void printArray(int pData[], int dataSz) {
-  int i, sz = dataSz > 100 ? 100 : dataSz; // Adjust to handle smaller arrays
-  printf("\tData (First 100 elements, if applicable):\n\t");
-  for (i = 0; i < sz; ++i) {
-    printf("%d ", pData[i]);
+void printArray(int dataset[], int size) {
+  int i, threshold = size - 100;
+  printf("\tData:\n\t");
+  for (i = 0; i < 100; ++i) {
+    printf("%d ", dataset[i]);
   }
-  if (dataSz > 100) {
-    printf("\n\t...skipping...\n\t");
-    for (i = dataSz - 100; i < dataSz; ++i) {
-      printf("%d ", pData[i]);
-    }
+  printf("\n\t");
+
+  for (i = threshold; i < size; ++i) {
+    printf("%d ", dataset[i]);
   }
   printf("\n\n");
 }
 
 int main(void) {
-  clock_t start, end;
-  double cpu_time_used;
-  char *fileNames[] = {"input1.txt", "input2.txt", "input3.txt"};
-  int fileCount = sizeof(fileNames) / sizeof(char *);
+  clock_t startTime, endTime;
+  int i;
+  double cpuTimeUsed;
+  char *files[] = {"input1.txt", "input2.txt", "input3.txt"};
 
-  for (int i = 0; i < fileCount; ++i) {
-    int *pDataSrc = NULL, *pDataCopy = NULL;
-    int dataSz = parseData(fileNames[i], &pDataSrc);
+  for (i = 0; i < 3; ++i) {
+    int *originalData, *copyData;
+    int dataSize = parseData(files[i], &originalData);
 
-    if (dataSz <= 0) {
-      printf("Error reading data from %s or file is empty.\n", fileNames[i]);
+    if (dataSize <= 0)
       continue;
-    }
 
-    pDataCopy = (int *)Alloc(sizeof(int) * dataSz);
+    copyData = (int *)malloc(sizeof(int) * dataSize);
 
     printf("---------------------------\n");
-    printf("Dataset Size: %d\n", dataSz);
+    printf("Dataset Size : %d\n", dataSize);
     printf("---------------------------\n");
 
-    // Repeat this pattern for each sort function
     printf("Selection Sort:\n");
-    memcpy(pDataCopy, pDataSrc, sizeof(int) * dataSz);
-    extraMemoryAllocated = 0;
-    start = clock();
-    selectionSort(pDataCopy, dataSz);
-    end = clock();
-    cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
-    printf("\truntime\t\t\t: %.2lf seconds\n", cpu_time_used);
-    printf("\textra memory allocated\t: %d bytes\n", extraMemoryAllocated);
-    printArray(pDataCopy, dataSz);
+    memcpy(copyData, originalData, dataSize * sizeof(int));
+    extraMemAllocated = 0;
+    startTime = clock();
+    selectionSort(copyData, dataSize);
+    endTime = clock();
+    cpuTimeUsed = ((double)(endTime - startTime)) / CLOCKS_PER_SEC;
+    printf("\truntime\t\t\t: %.1lf\n", cpuTimeUsed);
+    printf("\textra memory allocated\t: %d\n", extraMemAllocated);
+    printArray(copyData, dataSize);
 
-    
+    printf("Insertion Sort:\n");
+    memcpy(copyData, originalData, dataSize * sizeof(int));
+    extraMemAllocated = 0;
+    startTime = clock();
+    insertionSort(copyData, dataSize);
+    endTime = clock();
+    cpuTimeUsed = ((double)(endTime - startTime)) / CLOCKS_PER_SEC;
+    printf("\truntime\t\t\t: %.1lf\n", cpuTimeUsed);
+    printf("\textra memory allocated\t: %d\n", extraMemAllocated);
+    printArray(copyData, dataSize);
 
-    DeAlloc(pDataCopy);
-    DeAlloc(pDataSrc);
+    printf("Bubble Sort:\n");
+    memcpy(copyData, originalData, dataSize * sizeof(int));
+    extraMemAllocated = 0;
+    startTime = clock();
+    bubbleSort(copyData, dataSize);
+    endTime = clock();
+    cpuTimeUsed = ((double)(endTime - startTime)) / CLOCKS_PER_SEC;
+    printf("\truntime\t\t\t: %.1lf\n", cpuTimeUsed);
+    printf("\textra memory allocated\t: %d\n", extraMemAllocated);
+    printArray(copyData, dataSize);
+
+    printf("Merge Sort:\n");
+    memcpy(copyData, originalData, dataSize * sizeof(int));
+    extraMemAllocated = 0;
+    startTime = clock();
+    mergeSort(copyData, 0, dataSize - 1);
+    endTime = clock();
+    cpuTimeUsed = ((double)(endTime - startTime)) / CLOCKS_PER_SEC;
+    printf("\truntime\t\t\t: %.1lf\n", cpuTimeUsed);
+    printf("\textra memory allocated\t: %d\n", extraMemAllocated);
+    printArray(copyData, dataSize);
+
+    free(copyData);
+    free(originalData);
   }
   return 0;
 }
